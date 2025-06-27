@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanime Streaming</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        h1::after {
+            content: " 👀";
+            font-size: 1.2em;
+        }
+        h2 {
+            margin-top: 30px;
+        }
+        .trending, .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+        .video-card, .tag-card {
+            background-color: #333;
+            border-radius: 8px;
+            padding: 10px;
+            width: 200px;
+            text-align: center;
+        }
+        .video-card img, .video-card video {
+            width: 100%;
+            border-radius: 8px;
+        }
+        .tag-card {
+            cursor: pointer;
+            background-color: #555;
+        }
+        .player {
+            display: none;
+            margin-top: 20px;
+        }
+        .player.active {
+            display: block;
+        }
+        button {
+            background-color: #e91e63;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #c2185b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Hanime Api</h1>
+        
+        <!-- Trending Videos -->
+        <h2>Trending Ngayon</h2>
+        <div class="trending" id="trending"></div>
+        
+        <!-- Tags -->
+        <h2>Mga Tag</h2>
+        <div class="tags" id="tags"></div>
+        
+        <!-- Video Player -->
+        <div class="player" id="player">
+            <h2 id="video-title"></h2>
+            <video id="video-player" controls width="100%"></video>
+            <p id="video-description"></p>
+            <button onclick="closePlayer()">Isara ang Player</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://hanime-ph.up.railway.app:8080";
+
+        // Kunin ang trending videos
+        async function fetchTrending() {
+            try {
+                const response = await fetch(`${API_BASE}/trending/day/1`);
+                const data = await response.json();
+                const trendingDiv = document.getElementById("trending");
+                trendingDiv.innerHTML = "";
+                data.results.forEach(video => {
+                    const card = document.createElement("div");
+                    card.className = "video-card";
+                    card.innerHTML = `
+                        <img src="${video.cover_url}" alt="${video.name}">
+                        <h3>${video.name}</h3>
+                        <p>Views: ${video.views}</p>
+                        <button onclick="playVideo('${video.slug}')">Panoorin</button>
+                    `;
+                    trendingDiv.appendChild(card);
+                });
+            } catch (error) {
+                console.error("Error fetching trending:", error);
+                document.getElementById("trending").innerHTML = "<p>Hindi ma-load ang trending videos.</p>";
+            }
+        }
+
+        // Kunin ang mga tags
+        async function fetchTags() {
+            try {
+                const response = await fetch(`${API_BASE}/tags`);
+                const data = await response.json();
+                const tagsDiv = document.getElementById("tags");
+                tagsDiv.innerHTML = "";
+                data.results.forEach(tag => {
+                    const card = document.createElement("div");
+                    card.className = "tag-card";
+                    card.innerHTML = `<p>${tag.text}</p>`;
+                    card.onclick = () => alert(`Magpapakita ng mga video para sa tag: ${tag.text}`);
+                    tagsDiv.appendChild(card);
+                });
+            } catch (error) {
+                console.error("Error fetching tags:", error);
+                document.getElementById("tags").innerHTML = "<p>Hindi ma-load ang mga tag.</p>";
+            }
+        }
+
+        // I-play ang video
+        async function playVideo(slug) {
+            try {
+                const response = await fetch(`${API_BASE}/watch/${slug}`);
+                const data = await response.json();
+                const video = data.results[0];
+                const player = document.getElementById("player");
+                const videoPlayer = document.getElementById("video-player");
+                const videoTitle = document.getElementById("video-title");
+                const videoDesc = document.getElementById("video-description");
+
+                videoTitle.textContent = video.name;
+                videoDesc.textContent = video.description;
+                videoPlayer.src = video.streams[0].url; // Gamitin ang unang stream
+                player.classList.add("active");
+                videoPlayer.play();
+            } catch (error) {
+                console.error("Error fetching video:", error);
+                alert("Hindi ma-load ang video!");
+            }
+        }
+
+        // Isara ang player
+        function closePlayer() {
+            const player = document.getElementById("player");
+            const videoPlayer = document.getElementById("video-player");
+            videoPlayer.pause();
+            player.classList.remove("active");
+        }
+
+        // Simulan ang pag-load ng content
+        fetchTrending();
+        fetchTags();
+    </script>
+</body>
+</html>
