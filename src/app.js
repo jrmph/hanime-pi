@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Proxy API requests to hanime-ph.up.railway.app:8080
-const API_BASE = 'http://hanime-ph.up.railway.app:8080';
+const API_BASE = 'http://hanime-ph.up.railway.app';
 
 // Trending endpoint
 app.get('/trending/:time/:page', async (req, res) => {
