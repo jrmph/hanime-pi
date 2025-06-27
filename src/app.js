@@ -2,13 +2,9 @@ const express = require('express');
 const axios = require('axios');
 const crypto = require('crypto');
 const UserAgent = require('fake-useragent');
-const cors = require('cors'); // Idinagdag para sa CORS support
 
 const app = express();
-app.use(express.static('public')); // I-serve ang index.html mula sa 'public' folder
-app.use(cors()); // Idinagdag para payagan ang cross-origin requests
 
-// Function to fetch and parse JSON data from external API
 const jsongen = async (url) => {
   try {
     const headers = {
@@ -29,7 +25,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong' });
 });
 
-// Get trending videos
 const getTrending = async (time, page) => {
   const trendingUrl = `https://hanime.tv/api/v8/browse-trending?time=${time}&page=${page}&order_by=views&ordering=desc`;
   const url = trendingUrl;
@@ -45,7 +40,6 @@ const getTrending = async (time, page) => {
   return jsondata;
 };
 
-// Get video details
 const getVideo = async (slug) => {
   const videoApiUrl = 'https://hanime.tv/api/v8/video?id=';
   const videoDataUrl = videoApiUrl + slug;
@@ -82,14 +76,12 @@ const getVideo = async (slug) => {
   return [jsondata];
 };
 
-// Get browse data
 const getBrowse = async () => {
   const browseUrl = 'https://hanime.tv/api/v8/browse';
   const data = await jsongen(browseUrl);
   return data;
 };
 
-// Get browse videos by type, category, and page
 const getBrowseVideos = async (type, category, page) => {
   const browseUrl = `https://hanime.tv/api/v8/browse/${type}/${category}?page=${page}&order_by=views&ordering=desc`;
   const browsedata = await jsongen(browseUrl);
@@ -104,7 +96,6 @@ const getBrowseVideos = async (type, category, page) => {
   return jsondata;
 };
 
-// API Endpoints
 app.get('/watch/:slug', async (req, res, next) => {
   try {
     const { slug } = req.params;
@@ -163,13 +154,15 @@ app.get('/:type/:category/:page', async (req, res, next) => {
   }
 });
 
-// Root endpoint (optional, dahil na-serve na ang index.html)
 app.get('/', (req, res) => {
-  res.send('Welcome to Hanime Api 👀'); // Magagamit kung hindi naka-access ang index.html
+  res.send('Welcome to Hanime Api 👀');
 });
 
-// Start the server
-const server = app.listen(process.env.PORT || 8080, () => {
+const server = app.listen(process.env.PORT || 3000, () => {
   const port = server.address().port;
   console.log(`Server is running on port ${port}`);
 });
+
+
+
+ 
