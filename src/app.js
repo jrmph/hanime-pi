@@ -1,65 +1,10 @@
-require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const cheerio = require('cheerio');
 const crypto = require('crypto');
 const UserAgent = require('fake-useragent');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
 
 const app = express();
 
-// Middleware
-app.use(cors()); // Enable CORS
-app.use(express.json()); // Parse JSON bodies
-
-// Rate limiting to prevent abuse
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
-
-// General-purpose content fetching function
-const fetchWebsiteContent = async (url) => {
-  try {
-    const headers = {
-      'X-Signature-Version': 'web2',
-      'X-Signature': crypto.randomBytes(32).toString('hex'),
-      'User-Agent': new UserAgent().random,
-    };
-    const response = await axios.get(url, { headers });
-    
-    // If the response is JSON, return it directly
-    if (response.headers['content-type'].includes('application/json')) {
-      return { type: 'json', data: response.data };
-    }
-    
-    // If the response is HTML, parse with cheerio
-    const $ = cheerio.load(response.data);
-    const title = $('title').text();
-    const description = $('meta[name="description"]').attr('content') || '';
-    const images = [];
-    $('img').each((i, elem) => {
-      const src = $(elem).attr('src');
-      if (src) images.push(src);
-    });
-    
-    return {
-      type: 'html',
-      data: {
-        title,
-        description,
-        images,
-        rawHtml: response.data,
-      },
-    };
-  } catch (error) {
-    throw new Error(`Error fetching website content: ${error.message}`);
-  }
-};
-
-// Existing jsongen function for API calls
 const jsongen = async (url) => {
   try {
     const headers = {
@@ -80,10 +25,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong' });
 });
 
-// Fetch trending videos
 const getTrending = async (time, page) => {
   const trendingUrl = `https://hanime.tv/api/v8/browse-trending?time=${time}&page=${page}&order_by=views&ordering=desc`;
-  const urldata = await jsongen(trendingUrl);
+  const url = trendingUrl;
+  const urldata = await jsongen(url);
   const jsondata = urldata.hentai_videos.map((x) => ({
     id: x.id,
     name: x.name,
@@ -95,7 +40,6 @@ const getTrending = async (time, page) => {
   return jsondata;
 };
 
-// Fetch video details
 const getVideo = async (slug) => {
   const videoApiUrl = 'https://hanime.tv/api/v8/video?id=';
   const videoDataUrl = videoApiUrl + slug;
@@ -118,26 +62,26 @@ const getVideo = async (slug) => {
     views: e.views,
     link: `/watch/${e.slug}`,
   }));
-  return [{
+  const jsondata = {
     id: videoData.hentai_video.id,
     name: videoData.hentai_video.name,
     description: videoData.hentai_video.description,
     poster_url: videoData.hentai_video.poster_url,
     cover_url: videoData.hentai_video.cover_url,
     views: videoData.hentai_video.views,
-    streams,
-    tags,
-    episodes,
-  }];
+    streams: streams,
+    tags: tags,
+    episodes: episodes,
+  };
+  return [jsondata];
 };
 
-// Fetch browse data
 const getBrowse = async () => {
   const browseUrl = 'https://hanime.tv/api/v8/browse';
-  return await jsongen(browseUrl);
+  const data = await jsongen(browseUrl);
+  return data;
 };
 
-// Fetch browse videos
 const getBrowseVideos = async (type, category, page) => {
   const browseUrl = `https://hanime.tv/api/v8/browse/${type}/${category}?page=${page}&order_by=views&ordering=desc`;
   const browsedata = await jsongen(browseUrl);
@@ -152,21 +96,6 @@ const getBrowseVideos = async (type, category, page) => {
   return jsondata;
 };
 
-// New endpoint to fetch content from any website
-app.get('/fetch-content', async (req, res, next) => {
-  try {
-    const { url } = req.query;
-    if (!url) {
-      return res.status(400).json({ error: 'URL query parameter is required' });
-    }
-    const content = await fetchWebsiteContent(url);
-    res.json({ results: content });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Existing endpoints
 app.get('/watch/:slug', async (req, res, next) => {
   try {
     const { slug } = req.params;
@@ -226,10 +155,10 @@ app.get('/:type/:category/:page', async (req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('Welcome to Hanime API 👀');
+  res.send('Welcome to Hanime Api 👀');
 });
 
-const port = process.env.PORT || 3000;
-const server = app.listen(port, () => {
+const server = app.listen(process.env.PORT || 3000, () => {
+  const port = server.address().port;
   console.log(`Server is running on port ${port}`);
 });
